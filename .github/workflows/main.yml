@@ -5,6 +5,7 @@ jobs:
   main:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - name: get-public-ip
         id: ip
         uses: ./
