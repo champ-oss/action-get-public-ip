@@ -1,0 +1,15 @@
+name: main
+on: push
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: get-public-ip
+        id: ip
+        uses: ./
+      - name: Example export public IP as environment variable
+        run: echo "PUBLIC_IP=${{ steps.ip.outputs.ipv4 }}" >> $GITHUB_ENV
+      - name: Example use public IP from environment
+        run: echo "My public IP is ${PUBLIC_IP}"

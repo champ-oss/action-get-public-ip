@@ -1,0 +1,20 @@
+name: 'get-public-ip'
+description: Discovers and outputs the public IP
+inputs:
+  retries:
+    description: 'Maximum number of retires'
+    required: false
+    default: '60'
+outputs:
+  ipv4:
+    description: "IPv4"
+    value: ${{ steps.ipv4.outputs.ipv4 }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: ipv4
+      shell: bash
+      run: |
+        OUTPUT=$(curl --retry ${{ inputs.retries }} --retry-delay 1 --retry-all-errors https://api.ipify.org)
+        echo "ipv4=$(echo $OUTPUT)" >> $GITHUB_OUTPUT
