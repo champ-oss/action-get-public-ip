@@ -16,5 +16,5 @@ runs:
     - id: ipv4
       shell: bash
       run: |
-        OUTPUT=$(curl --retry ${{ inputs.retries }} --retry-delay 1 --retry-all-errors https://api.ipify.org)
+        OUTPUT=$(curl --retry ${{ inputs.retries }} --retry-delay 1 --retry-all-errors https://api.seeip.org/)
         echo "ipv4=$(echo $OUTPUT)" >> $GITHUB_OUTPUT
