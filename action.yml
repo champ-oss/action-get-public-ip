@@ -5,6 +5,10 @@ inputs:
     description: 'Maximum number of retires'
     required: false
     default: '60'
+  service:
+    description: 'Website to use'
+    required: false
+    default: 'https://api.ipify.org/'
 outputs:
   ipv4:
     description: "IPv4"
@@ -16,5 +20,5 @@ runs:
     - id: ipv4
       shell: bash
       run: |
-        OUTPUT=$(curl --retry ${{ inputs.retries }} --retry-delay 1 --retry-all-errors https://api.seeip.org/)
+        OUTPUT=$(curl --retry ${{ inputs.retries }} --retry-delay 1 --retry-all-errors ${{ inputs.service }})
         echo "ipv4=$(echo $OUTPUT)" >> $GITHUB_OUTPUT
