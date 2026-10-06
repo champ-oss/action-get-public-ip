@@ -17,7 +17,7 @@ if ! response=$(curl --silent --show-error --fail --ipv4 \
                      --max-time 10 --max-filesize 1024 \
                      --retry "$RETRIES" --retry-delay 1 --retry-all-errors \
                      --url "$SERVICE"); then
-  echo "::error::Failed to get a response from $SERVICE"
+  echo "::error::Failed to get a response from the configured service"
   exit 1
 fi
 
@@ -26,7 +26,7 @@ ip=${ip%"${ip##*[![:space:]]}"}
 
 if [[ ! $ip =~ $IPV4_REGEX ]]; then
   shown=$(printf '%s' "${response:0:64}" | tr -c '[:alnum:].:' '?')
-  echo "::error::$SERVICE did not return a valid IPv4 address (got '$shown')"
+  echo "::error::Configured service did not return a valid IPv4 address (got '$shown')"
   exit 1
 fi
 
