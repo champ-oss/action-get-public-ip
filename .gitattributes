@@ -1,0 +1,2 @@
+# Keep LF endings so bash can run the scripts on Windows runners
+*.sh text eol=lf
