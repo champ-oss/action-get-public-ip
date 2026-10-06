@@ -2,11 +2,11 @@ name: 'get-public-ip'
 description: Discovers and outputs the public IP
 inputs:
   retries:
-    description: 'Maximum number of retires'
+    description: 'Maximum number of retries'
     required: false
     default: '60'
   service:
-    description: 'Website to use'
+    description: 'URL of a service that responds with the caller''s IPv4 address as plain text'
     required: false
     default: 'https://api.ipify.org/'
 outputs:
@@ -19,6 +19,8 @@ runs:
   steps:
     - id: ipv4
       shell: bash
-      run: |
-        OUTPUT=$(curl --retry ${{ inputs.retries }} --retry-delay 1 --retry-all-errors ${{ inputs.service }})
-        echo "ipv4=$(echo $OUTPUT)" >> $GITHUB_OUTPUT
+      # Inputs are passed through env rather than ${{ }} so they can't inject shell code
+      env:
+        INPUT_RETRIES: ${{ inputs.retries }}
+        INPUT_SERVICE: ${{ inputs.service }}
+      run: bash "$GITHUB_ACTION_PATH/get-public-ip.sh"

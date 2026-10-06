@@ -1,15 +1,75 @@
 name: main
 on: push
 
+permissions:
+  contents: read
+
 jobs:
-  main:
+  lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
+      - run: shellcheck get-public-ip.sh tests/*.sh
+
+  # Good and bad responses from a local mock service
+  integration-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: tests/integration-test.sh
+
+  # The action itself, end to end against the real service
+  main:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
       - name: get-public-ip
         id: ip
         uses: ./
       - name: Example export public IP as environment variable
-        run: echo "PUBLIC_IP=${{ steps.ip.outputs.ipv4 }}" >> $GITHUB_ENV
+        shell: bash
+        run: echo "PUBLIC_IP=${{ steps.ip.outputs.ipv4 }}" >> "$GITHUB_ENV"
       - name: Example use public IP from environment
-        run: echo "My public IP is ${PUBLIC_IP}"
+        shell: bash
+        run: |
+          echo "My public IP is ${PUBLIC_IP}"
+          [[ $PUBLIC_IP =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]
+
+  # The action must fail, and output nothing, when given bad data
+  rejects-bad-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Start a mock service with a malicious response
+        run: |
+          mkdir "$RUNNER_TEMP/www"
+          printf '8.8.8.8\nipv4=6.6.6.6\n' > "$RUNNER_TEMP/www/ip"
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory "$RUNNER_TEMP/www" &
+          curl -sf -o /dev/null --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8765/ip
+      - name: get-public-ip (malicious response)
+        id: bad-response
+        uses: ./
+        continue-on-error: true
+        with:
+          service: http://127.0.0.1:8765/ip
+          retries: 0
+      - name: get-public-ip (shell code in input)
+        id: bad-input
+        uses: ./
+        continue-on-error: true
+        with:
+          retries: '$(touch pwned)0'
+      - name: Check both were rejected
+        env:
+          RESPONSE_OUTCOME: ${{ steps.bad-response.outcome }}
+          RESPONSE_IP: ${{ steps.bad-response.outputs.ipv4 }}
+          INPUT_OUTCOME: ${{ steps.bad-input.outcome }}
+          INPUT_IP: ${{ steps.bad-input.outputs.ipv4 }}
+        run: |
+          [[ $RESPONSE_OUTCOME == failure && -z $RESPONSE_IP ]] || { echo "::error::Malicious response was not rejected"; exit 1; }
+          [[ $INPUT_OUTCOME == failure && -z $INPUT_IP ]] || { echo "::error::Shell code in input was not rejected"; exit 1; }
+          [[ ! -e pwned ]] || { echo "::error::Shell code in input was executed"; exit 1; }
